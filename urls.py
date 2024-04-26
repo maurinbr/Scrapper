@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import urllib.parse
 
 
-def generate_urls(num_days=14):
+def generate_urls(num_days):
     """
     Génère une liste d'URLs pour la recherche de trajets sur le site web driiveme.com
     à partir de la date actuelle et pour les jours suivants.
@@ -45,6 +45,7 @@ def generate_urls(num_days=14):
 # Utilisation de la fonction pour générer une liste d'URLs pour les 14 prochains jours
 urls_next_14_days = generate_urls(14)
 
-# Afficher les URLs générées
+"""""# Afficher les URLs générées
 for url in urls_next_14_days:
     print(url)
+"""""

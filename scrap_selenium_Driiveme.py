@@ -7,30 +7,32 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# Script next page
-js_file_path = "nextpage.js"
 
-# Chemin vers le driver Selenium (ex: Chrome)
-driver_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 
-# URL du site web
-url = "https://www.driiveme.com/popup/connexion.html"
 
-# Identifiants de connexion
-username = "bruno.maurin.mtp@gmail.com"
-password = "Oligo2$$"
+def Scrapper(target):
+    # Script next page
+    js_file_path = "nextpage.js"
 
-# Configuration du navigateur
-options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # Activer le mode headless
-options.add_argument("--disable-gpu")  # Désactiver l'accélération matérielle
-options.add_argument("--disable-dev-shm-usage")  # Désactiver l'utilisation de /dev/shm
+    # Chemin vers le driver Selenium (ex: Chrome)
+    driver_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 
-driver = webdriver.Chrome(options=options)
+    # URL du site web
+    url = "https://www.driiveme.com/popup/connexion.html"
 
-# Charger la page sans charger la bibliothèque Google Maps JavaScript API
+    # Identifiants de connexion
+    username = "bruno.maurin.mtp@gmail.com"
+    password = "Oligo2$$"
 
-def Scrapper():
+    # Configuration du navigateur
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")  # Activer le mode headless
+    options.add_argument("--disable-gpu")  # Désactiver l'accélération matérielle
+    options.add_argument("--disable-dev-shm-usage")  # Désactiver l'utilisation de /dev/shm
+
+    driver = webdriver.Chrome(options=options)
+
+    # Charger la page sans charger la bibliothèque Google Maps JavaScript API
     # Accéder à la page de connexion
     driver.get(url)
 
@@ -49,7 +51,14 @@ def Scrapper():
             
             EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button"))
         )
+        print("page 1")
 
+        driver.get(target)
+        WebDriverWait(driver, 10).until(
+            
+            EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button"))
+        )
+        print("page 2")
 
         # Exécuter le script JavaScript pour passer à la page suivante
         with open(js_file_path, "r") as file:
@@ -124,4 +133,8 @@ def Scrapper():
         # Fermer le navigateur
         driver.quit()
 
-Scrapper()
+import urls
+Listurls = urls.generate_urls(3)
+testurl = "https://www.driiveme.com/rechercher-trajet.html?actionForm=search-trajet&cityDeparture=&cityDepartureId=&cityDepartureSave=&cityDestination=&cityDestinationId=&cityDestinationSave=&desiredDate=25/04/2024"
+
+Scrapper(testurl)
