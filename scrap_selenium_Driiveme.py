@@ -6,11 +6,29 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import pandas as pd
-
-
-
+import urls
+import re
+import concurrent.futures
+import time
+import googlemap
 
 def Scrapper(target):
+    # Fonction pour convertir une durée en minutes
+    def convert_to_minutes(duree):
+        heures = re.search(r'(\d+)\s*h', duree)
+        minutes = re.search(r'(\d+)\s*min', duree)
+        total_minutes = 0
+        if heures:
+            total_minutes += int(heures.group(1)) * 60
+        if minutes:
+            total_minutes += int(minutes.group(1))
+        return total_minutes
+
+    def sommer_durees(duree1, duree2):
+        total_minutes = convert_to_minutes(duree1) + convert_to_minutes(duree2)
+        heures = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{heures} h {minutes} min"
 
     # Parcourir les éléments et extraire les informations
     depart_list = []
@@ -21,6 +39,7 @@ def Scrapper(target):
     duree_list = []
     lien_list = []
     prix_list = []
+    durée_list = []
 
     # Script next page
     js_file_path = "nextpage.js"
@@ -130,21 +149,53 @@ def Scrapper(target):
         "Distance": distance_list,
         "Durée": duree_list,
         "Lien": lien_list,
-        "Prix": prix_list
+        "Prix": prix_list,
     })
 
+    # Supprimer tous les doublons causé par la méthode de recherche par date
     df = df.drop_duplicates()
+
+    # Transformer les prix en valeur numérique 
     df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
+
+    # Construction de la liste de tuple pour les calculs de temps de trajet
+    domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df.iterrows()]
+    arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df.iterrows()]
+
+    # Calcul du temps de trajet vers le point de récupération du véhicule
+    durée_domicile1 = googlemap.googlemap(domicile_départ)
+    df['Durée (domicile1)'] = durée_domicile1
+
+    # Calcul du temps de retour au domicile après livraison
+    durée_domicile2 = googlemap.googlemap(arrivée_domicile)
+    df['Durée (domicile2)'] = durée_domicile2
+
+    # Faire la somme des trajet aller - retour au domicile
+    df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+
+    # Sommer les trajet aller - retour vers le domicile (en minute seulement)
+    df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+
+    # Sauvegarder la base 
     df.to_excel('Driiveme.xlsx')
     print(df)
 
     
-
-
-import urls
-
 # Fonction de test
 if __name__ == "__main__":
+
+    # Enregistrer le temps de départ
+    debut = time.time()
+
+    # Générer une liste d'url pour les 14 prochains jours
     Listurls = urls.generate_urls(14)
 
+    # Scrapper
     Scrapper(Listurls)
+
+    # Enregistrer le temps de départ    
+    fin = time.time()
+    temps_execution = fin - debut
+    
+    # Afficher le temps d'exécution
+    print("Temps d'exécution:", temps_execution, "secondes")
