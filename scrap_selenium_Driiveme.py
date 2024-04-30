@@ -155,27 +155,64 @@ def Scrapper(target):
     # Supprimer tous les doublons causé par la méthode de recherche par date
     df = df.drop_duplicates()
 
+    df = df.head(40)
+
     # Transformer les prix en valeur numérique 
     df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
 
-    # Construction de la liste de tuple pour les calculs de temps de trajet
-    domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df.iterrows()]
-    arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df.iterrows()]
+    
+    try:
+        df_old = pd.read_excel('Driiveme.xlsx')
 
-    # Calcul du temps de trajet vers le point de récupération du véhicule
-    durée_domicile1 = googlemap.googlemap(domicile_départ)
-    df['Durée (domicile1)'] = durée_domicile1
+        # Supprimer les données de table2 qui ne sont pas présentes dans table1
+        df_old = df_old[df_old[['Départ', 'Arrivée', 'Début', 'Fin']].isin(df[['Départ', 'Arrivée', 'Début', 'Fin']]).all(axis=1)]
 
-    # Calcul du temps de retour au domicile après livraison
-    durée_domicile2 = googlemap.googlemap(arrivée_domicile)
-    df['Durée (domicile2)'] = durée_domicile2
+        # Supprimer les données de table1 en fonction des données de table2
+        df2 = df[~df[['Départ', 'Arrivée', 'Début', 'Fin']].isin(df_old[['Départ', 'Arrivée', 'Début', 'Fin']]).all(axis=1)]
 
-    # Faire la somme des trajet aller - retour au domicile
-    df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
 
-    # Sommer les trajet aller - retour vers le domicile (en minute seulement)
-    df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+        # Construction de la liste de tuple pour les calculs de temps de trajet
+        domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
+        arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df2.iterrows()]
 
+        # Calcul du temps de trajet vers le point de récupération du véhicule
+        durée_domicile1 = googlemap.googlemap(domicile_départ)
+        df2['Durée (domicile1)'] = durée_domicile1
+
+        # Calcul du temps de retour au domicile après livraison
+        durée_domicile2 = googlemap.googlemap(arrivée_domicile)
+        df2['Durée (domicile2)'] = durée_domicile2
+
+        # Faire la somme des trajet aller - retour au domicile
+        df2['Somme'] = df2.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+
+        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
+        df2['Somme'] = df2.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+
+        # Fusionner les 2 nouvelles tables
+        df = pd.concat([df2,df_old])
+
+    # Continuer au cas ou la table de données n'est pas présente
+    except:
+            # Construction de la liste de tuple pour les calculs de temps de trajet
+        domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df.iterrows()]
+        arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df.iterrows()]
+
+        # Calcul du temps de trajet vers le point de récupération du véhicule
+        durée_domicile1 = googlemap.googlemap(domicile_départ)
+        df['Durée (domicile1)'] = durée_domicile1
+
+        # Calcul du temps de retour au domicile après livraison
+        durée_domicile2 = googlemap.googlemap(arrivée_domicile)
+        df['Durée (domicile2)'] = durée_domicile2
+
+        # Faire la somme des trajet aller - retour au domicile
+        df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+
+        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
+        df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+    
+    
     # Sauvegarder la base 
     df.to_excel('Driiveme.xlsx')
     print(df)
@@ -188,7 +225,7 @@ if __name__ == "__main__":
     debut = time.time()
 
     # Générer une liste d'url pour les 14 prochains jours
-    Listurls = urls.generate_urls(14)
+    Listurls = urls.generate_urls(1)
 
     # Scrapper
     Scrapper(Listurls)
