@@ -157,7 +157,7 @@ def Scrapper(target):
     try:
         # Charger les trajets déjà connus pour éviter les requetes inutiles
         df_old = pd.read_excel('Driiveme.xlsx')
-
+        df_old = df_old.drop_duplicates()
 
         colonnes_fusion = ['Départ', 'Arrivée', 'Début', 'Fin']
 
@@ -194,10 +194,6 @@ def Scrapper(target):
         durée_domicile2 = googlemap.googlemap(arrivée_domicile)
         df2['Durée (domicile2)'] = durée_domicile2
 
-        print(df2.columns)
-
-        print(df_old.columns)
-
         # Fusionner les 2 nouvelles tables
         df = pd.concat([df2,df_old])
 
@@ -212,29 +208,12 @@ def Scrapper(target):
     # Continuer au cas ou la table de données n'est pas présente
     except:
         print("une erreur s'est produite")
-            # Construction de la liste de tuple pour les calculs de temps de trajet
-        domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df.iterrows()]
-        arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df.iterrows()]
 
-        # Calcul du temps de trajet vers le point de récupération du véhicule
-        durée_domicile1 = googlemap.googlemap(domicile_départ)
-        df['Durée (domicile1)'] = durée_domicile1
-
-        # Calcul du temps de retour au domicile après livraison
-        durée_domicile2 = googlemap.googlemap(arrivée_domicile)
-        df['Durée (domicile2)'] = durée_domicile2
-
-        # Faire la somme des trajet aller - retour au domicile
-        df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
-        df['Somme'] = df.apply(lambda row: sommer_durees(row['Somme'], row['Durée']), axis=1)
-
-        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
-        df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
-        
     # Calculer le trajet avec le plus de rémunération par temps de trajet
     df['Rendement'] = (df['Prix'] / df['Somme']).round(1)
 
     df = df.filter(regex='^(?!Unnamed)')
+    df = df.drop_duplicates()
     df.to_excel('Driiveme.xlsx')
     # Sauvegarder la base 
 
@@ -242,7 +221,7 @@ def Scrapper(target):
 
     # Sélection des meilleurs missions
     try:
-        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<800)]
+        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<800)].drop_duplicates()
         best.to_excel('best.xlsx')
     except:
         print('requete invalide')
@@ -250,18 +229,23 @@ def Scrapper(target):
 # Fonction de test
 if __name__ == "__main__":
 
-    # Enregistrer le temps de départ
-    debut = time.time()
+    while(True):
+        try:
+            # Enregistrer le temps de départ
+            debut = time.time()
 
-    # Générer une liste d'url pour les 14 prochains jours
-    Listurls = urls.generate_urls(14)
+            # Générer une liste d'url pour les 14 prochains jours
+            Listurls = urls.generate_urls(14)
 
-    # Scrapper
-    Scrapper(Listurls)
+            # Scrapper
+            Scrapper(Listurls)
 
-    # Enregistrer le temps de départ    
-    fin = time.time()
-    temps_execution = fin - debut
-    
-    # Afficher le temps d'exécution
-    print("Temps d'exécution:", temps_execution, "secondes")
+            # Enregistrer le temps de départ    
+            fin = time.time()
+            temps_execution = fin - debut
+            
+            # Afficher le temps d'exécution
+            print("Temps d'exécution:", temps_execution, "secondes")
+        except:
+            print("une erreur est produite")
+        time.sleep(600)
