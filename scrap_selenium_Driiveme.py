@@ -62,7 +62,6 @@ def Scrapper(target):
     options.add_argument('--blink-settings=imagesEnabled=false') # this will disable image loading
     driver = webdriver.Chrome(options=options)
 
-    # Charger la page sans charger la bibliothèque Google Maps JavaScript API
     # Accéder à la page de connexion
     driver.get(url)
 
@@ -71,25 +70,21 @@ def Scrapper(target):
     password_field = driver.find_element(By.ID, "password")  
     submit_button = driver.find_element(By.CLASS_NAME,"btn-login")  
 
+    # Envoyer les données 
     username_field.send_keys(username)
     password_field.send_keys(password)
     submit_button.click()
 
-    # Attendre que la page suivante se charge (peut-être un tableau de bord ou autre)
+    # Attendre le chargement de la page
     try:
-        WebDriverWait(driver, 10).until(
-            
-            EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button"))
-        )
-        print("page 1")
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))
 
+        # Parcourir toutes les urls à scrapper 
         for target_url in target:
             driver.get(target_url)
-            WebDriverWait(driver, 10).until(
-                
-                EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button"))
-            )
-            
+
+            # Attendre le chargrement de la page
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))            
 
             # Exécuter le script JavaScript pour passer à la page suivante
             with open(js_file_path, "r") as file:
@@ -110,7 +105,10 @@ def Scrapper(target):
             # Utiliser BeautifulSoup pour analyser le contenu HTML
             soup = BeautifulSoup(html_content, "html.parser")
 
+            # Trouver tous les trajet 
             block_trajets = soup.find_all(class_="block-trajet")
+
+            # Parcourir les trajets
             for block_trajet in block_trajets:
                 # Extraire les informations nécessaires
                 depart = block_trajet.find(class_="departure").find('span')['data-original-title']
@@ -132,10 +130,6 @@ def Scrapper(target):
                 lien_list.append(lien)
                 prix_list.append(prix)
 
-
-        # Maintenant, vous pouvez commencer à extraire les données de la page
-        # Par exemple, trouver des éléments et récupérer leur contenu avec driver.find_element...
-        # Assurez-vous d'adapter les sélecteurs aux éléments que vous souhaitez extraire sur votre page
     finally:
         # Fermer le navigateur
         driver.quit()
@@ -152,24 +146,41 @@ def Scrapper(target):
         "Prix": prix_list,
     })
 
-    # Supprimer tous les doublons causé par la méthode de recherche par date
+    # Supprimer tous les doublons causés par la méthode de recherche par date ou par ville
     df = df.drop_duplicates()
 
-    df = df.head(40)
+    print("Nombre de trajets: ", len(df))
 
     # Transformer les prix en valeur numérique 
     df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
-
     
     try:
+        # Charger les trajets déjà connus pour éviter les requetes inutiles
         df_old = pd.read_excel('Driiveme.xlsx')
 
+
+        colonnes_fusion = ['Départ', 'Arrivée', 'Début', 'Fin']
+
+        # Toutes les colonnes des deux DataFrames
+        colonnes_df = df.columns
+        colonnes_df_old = df_old.columns
+
+        # Colonnes redondantes (présentes dans les deux DataFrames sauf celles utilisées pour la fusion)
+        colonnes_redondantes = set(colonnes_df).intersection(colonnes_df_old) - set(colonnes_fusion)
+        df_old = df_old.drop(columns=colonnes_redondantes)
+
         # Supprimer les données de table2 qui ne sont pas présentes dans table1
-        df_old = df_old[df_old[['Départ', 'Arrivée', 'Début', 'Fin']].isin(df[['Départ', 'Arrivée', 'Début', 'Fin']]).all(axis=1)]
+        df_old = pd.merge(df, df_old, on=colonnes_fusion, how='inner')
+        print("Trajet déja connus: ", len(df_old))
 
-        # Supprimer les données de table1 en fonction des données de table2
-        df2 = df[~df[['Départ', 'Arrivée', 'Début', 'Fin']].isin(df_old[['Départ', 'Arrivée', 'Début', 'Fin']]).all(axis=1)]
-
+        # Garder uniquement les nouvelles données de la table df pour faire le calcul de distance
+        merged_df = pd.merge(df, df_old.drop(columns=colonnes_redondantes), on=['Départ', 'Arrivée', 'Début', 'Fin'], how='left', indicator=True)
+        df2 = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+        
+        df2 = df2[['Départ', 'Arrivée', 'Début', 'Fin','Distance','Durée',"Lien",'Prix']]
+        print("Nouveaux trajets: ", len(df2))
+        print(df2)
+        
 
         # Construction de la liste de tuple pour les calculs de temps de trajet
         domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
@@ -183,17 +194,24 @@ def Scrapper(target):
         durée_domicile2 = googlemap.googlemap(arrivée_domicile)
         df2['Durée (domicile2)'] = durée_domicile2
 
-        # Faire la somme des trajet aller - retour au domicile
-        df2['Somme'] = df2.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+        print(df2.columns)
 
-        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
-        df2['Somme'] = df2.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+        print(df_old.columns)
 
         # Fusionner les 2 nouvelles tables
         df = pd.concat([df2,df_old])
 
+        # Faire la somme des trajet aller - retour au domicile
+        df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+        df['Somme'] = df.apply(lambda row: sommer_durees(row['Somme'], row['Durée']), axis=1)
+
+        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
+        df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
+
+
     # Continuer au cas ou la table de données n'est pas présente
     except:
+        print("une erreur s'est produite")
             # Construction de la liste de tuple pour les calculs de temps de trajet
         domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df.iterrows()]
         arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df.iterrows()]
@@ -208,15 +226,26 @@ def Scrapper(target):
 
         # Faire la somme des trajet aller - retour au domicile
         df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+        df['Somme'] = df.apply(lambda row: sommer_durees(row['Somme'], row['Durée']), axis=1)
 
         # Sommer les trajet aller - retour vers le domicile (en minute seulement)
         df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
-    
-    
-    # Sauvegarder la base 
-    df.to_excel('Driiveme.xlsx')
-    print(df)
+        
+    # Calculer le trajet avec le plus de rémunération par temps de trajet
+    df['Rendement'] = (df['Prix'] / df['Somme']).round(1)
 
+    df = df.filter(regex='^(?!Unnamed)')
+    df.to_excel('Driiveme.xlsx')
+    # Sauvegarder la base 
+
+
+
+    # Sélection des meilleurs missions
+    try:
+        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<800)]
+        best.to_excel('best.xlsx')
+    except:
+        print('requete invalide')
     
 # Fonction de test
 if __name__ == "__main__":
@@ -225,7 +254,7 @@ if __name__ == "__main__":
     debut = time.time()
 
     # Générer une liste d'url pour les 14 prochains jours
-    Listurls = urls.generate_urls(1)
+    Listurls = urls.generate_urls(14)
 
     # Scrapper
     Scrapper(Listurls)
