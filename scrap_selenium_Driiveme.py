@@ -117,7 +117,7 @@ def Scrapper(target):
                 fin = block_trajet.find(class_="availability").find_all('input')[1]['value']
                 duree = block_trajet.find(class_="item").find(class_="value").text.strip()
                 distance = block_trajet.find_all(class_="item")[1].find(class_="value").text.strip()
-                lien = block_trajet.find(class_="btn-success")['href'] if block_trajet.find(class_="btn-success") else None
+                lien = str("www.driiveme.com"+block_trajet.find(class_="btn-success")['href']) if block_trajet.find(class_="btn-success") else None
                 prix = block_trajet.find(class_="price").span.text.strip() if block_trajet.find(class_="price") else None
                 
                 # Ajouter les données dans les listes
@@ -221,7 +221,7 @@ def Scrapper(target):
 
     # Sélection des meilleurs missions
     try:
-        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<800)].drop_duplicates()
+        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<600)].drop_duplicates()
         best.to_excel('best.xlsx')
     except:
         print('requete invalide')

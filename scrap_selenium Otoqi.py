@@ -68,7 +68,34 @@ def Scrapper(urls):
         # Utiliser BeautifulSoup pour analyser le contenu HTML
         soup = BeautifulSoup(html_content, "html.parser")
 
-        print(soup)
+        # Trouve toutes les divs avec la classe "date-label-container"
+        date_labels = soup.find_all('div', class_='date-label-container')
+
+        # Crée une liste pour stocker les données
+        data = []
+
+        # Parcourt chaque div de date
+        for date_label in date_labels:
+            date = date_label.get_text(strip=True)
+            # Trouve les spans suivants dans la structure HTML
+            spans = date_label.find('div', class_='mission-container')
+            print(spans)
+            print(date_label.find_next_siblings)
+            print(date_label.next_element)
+            print(date_label.next_sibling)
+            '''
+            for span in spans:
+                mission_info = span.find_all('span')
+                debut = mission_info[0].get_text(strip=True)
+                fin = mission_info[1].get_text(strip=True)
+                prix = mission_info[3].get_text(strip=True)
+                depart = mission_info[4].find('strong').get_text(strip=True)
+                arrivee = mission_info[5].find('strong').get_text(strip=True)
+'''
+            data.append([date])
+        # Crée une DataFrame avec les données extraites
+        df = pd.DataFrame(data, columns=['Date'])
+        print(df)
 
 
 
