@@ -77,14 +77,14 @@ def Scrapper(target):
 
     # Attendre le chargement de la page
     try:
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))
 
         # Parcourir toutes les urls à scrapper 
         for target_url in target:
             driver.get(target_url)
 
             # Attendre le chargrement de la page
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))            
+            WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME, "page-trajet-button")))            
 
             # Exécuter le script JavaScript pour passer à la page suivante
             with open(js_file_path, "r") as file:
@@ -130,6 +130,9 @@ def Scrapper(target):
                 lien_list.append(lien)
                 prix_list.append(prix)
 
+    except Exception as e : 
+        print("Erreur lors du chargement de la page",driver)
+        print(e)
     finally:
         # Fermer le navigateur
         driver.quit()
@@ -154,60 +157,60 @@ def Scrapper(target):
     # Transformer les prix en valeur numérique 
     df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
     
-    try:
-        # Charger les trajets déjà connus pour éviter les requetes inutiles
-        df_old = pd.read_excel('Driiveme.xlsx')
-        df_old = df_old.drop_duplicates()
-
-        colonnes_fusion = ['Départ', 'Arrivée', 'Début', 'Fin']
-
-        # Toutes les colonnes des deux DataFrames
-        colonnes_df = df.columns
-        colonnes_df_old = df_old.columns
-
-        # Colonnes redondantes (présentes dans les deux DataFrames sauf celles utilisées pour la fusion)
-        colonnes_redondantes = set(colonnes_df).intersection(colonnes_df_old) - set(colonnes_fusion)
-        df_old = df_old.drop(columns=colonnes_redondantes)
-
-        # Supprimer les données de table2 qui ne sont pas présentes dans table1
-        df_old = pd.merge(df, df_old, on=colonnes_fusion, how='inner')
-        print("Trajet déja connus: ", len(df_old))
-
-        # Garder uniquement les nouvelles données de la table df pour faire le calcul de distance
-        merged_df = pd.merge(df, df_old.drop(columns=colonnes_redondantes), on=['Départ', 'Arrivée', 'Début', 'Fin'], how='left', indicator=True)
-        df2 = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
         
-        df2 = df2[['Départ', 'Arrivée', 'Début', 'Fin','Distance','Durée',"Lien",'Prix']]
-        print("Nouveaux trajets: ", len(df2))
-        print(df2)
+    # Charger les trajets déjà connus pour éviter les requetes inutiles
+    df_old = pd.read_excel('Driiveme.xlsx')
+    
+    df_old = df_old.drop_duplicates()
+
+    colonnes_fusion = ['Départ', 'Arrivée', 'Début', 'Fin']
+
+    # Toutes les colonnes des deux DataFrames
+    colonnes_df = df.columns
+    colonnes_df_old = df_old.columns
+
+    # Colonnes redondantes (présentes dans les deux DataFrames sauf celles utilisées pour la fusion)
+    colonnes_redondantes = set(colonnes_df).intersection(colonnes_df_old) - set(colonnes_fusion)
+    df_old = df_old.drop(columns=colonnes_redondantes)
+
+    # Supprimer les données de table2 qui ne sont pas présentes dans table1
+    df_old = pd.merge(df, df_old, on=colonnes_fusion, how='inner')
+    print("Trajet déja connus: ", len(df_old))
+
+    # Garder uniquement les nouvelles données de la table df pour faire le calcul de distance
+    merged_df = pd.merge(df, df_old.drop(columns=colonnes_redondantes), on=['Départ', 'Arrivée', 'Début', 'Fin'], how='left', indicator=True)
+    df2 = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+    
+    df2 = df2[['Départ', 'Arrivée', 'Début', 'Fin','Distance','Durée',"Lien",'Prix']]
+    print("Nouveaux trajets: ", len(df2))
+    print(df2)
+    
+
+    # Construction de la liste de tuple pour les calculs de temps de trajet
+    domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
+    arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df2.iterrows()]
+
+    # Calcul du temps de trajet vers le point de récupération du véhicule
+    durée_domicile1 = googlemap.googlemap(domicile_départ)
+    df2['Durée (domicile1)'] = durée_domicile1
+
+    # Calcul du temps de retour au domicile après livraison
+    durée_domicile2 = googlemap.googlemap(arrivée_domicile)
+    df2['Durée (domicile2)'] = durée_domicile2
+
+    # Fusionner les 2 nouvelles tables
+    df = pd.concat([df2,df_old])
+
+    # Faire la somme des trajet aller - retour au domicile
+    df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
+    df['Somme'] = df.apply(lambda row: sommer_durees(row['Somme'], row['Durée']), axis=1)
+
+    # Sommer les trajet aller - retour vers le domicile (en minute seulement)
+    df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)    
+
         
-
-        # Construction de la liste de tuple pour les calculs de temps de trajet
-        domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
-        arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df2.iterrows()]
-
-        # Calcul du temps de trajet vers le point de récupération du véhicule
-        durée_domicile1 = googlemap.googlemap(domicile_départ)
-        df2['Durée (domicile1)'] = durée_domicile1
-
-        # Calcul du temps de retour au domicile après livraison
-        durée_domicile2 = googlemap.googlemap(arrivée_domicile)
-        df2['Durée (domicile2)'] = durée_domicile2
-
-        # Fusionner les 2 nouvelles tables
-        df = pd.concat([df2,df_old])
-
-        # Faire la somme des trajet aller - retour au domicile
-        df['Somme'] = df.apply(lambda row: sommer_durees(row['Durée (domicile1)'], row['Durée (domicile2)']), axis=1)
-        df['Somme'] = df.apply(lambda row: sommer_durees(row['Somme'], row['Durée']), axis=1)
-
-        # Sommer les trajet aller - retour vers le domicile (en minute seulement)
-        df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)
-
-
     # Continuer au cas ou la table de données n'est pas présente
-    except:
-        print("une erreur s'est produite")
+
 
     # Calculer le trajet avec le plus de rémunération par temps de trajet
     df['Rendement'] = (df['Prix'] / df['Somme']).round(1)
@@ -221,10 +224,10 @@ def Scrapper(target):
 
     # Sélection des meilleurs missions
     try:
-        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<600)].drop_duplicates()
+        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<1200)].drop_duplicates()
         best.to_excel('best.xlsx')
-    except:
-        print('requete invalide')
+    except Exception as e :
+        print('requete invalide', e)
     
 # Fonction de test
 if __name__ == "__main__":
@@ -246,6 +249,8 @@ if __name__ == "__main__":
             
             # Afficher le temps d'exécution
             print("Temps d'exécution:", temps_execution, "secondes")
-        except:
-            print("une erreur est produite")
-        time.sleep(600)
+            time.sleep(300)
+        except Exception as e :
+            print("Une erreur s'est produite")
+            print(e)
+            sleep(300)
