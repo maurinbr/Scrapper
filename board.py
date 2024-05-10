@@ -7,6 +7,16 @@ import locale
 import time
 
 while(True):
+    
+    # Ajouter la fonction de clic pour afficher la valeur de la colonne Lien
+    def on_click(event):
+        if event.inaxes is not None:
+            for i, bar in enumerate(bars):
+                if bar.contains(event)[0]:
+                    print("Lien:", df['Lien'][i])
+                    webbrowser.open_new(df['Lien'][i])
+
+    
     try:
         # Définir la localisation en français
         locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
@@ -43,40 +53,34 @@ while(True):
                     ha='center', va='center', color='black')  # Changer la couleur en blanc et afficher "Prix: Temps"
 
         # Définir les étiquettes pour l'axe des y avec rotation
-
         plt.yticks(range(len(df)), y_labels, rotation=1, ha='right')  # Rotation des étiquettes avec alignement à droite
 
-        # Ajouter la fonction de clic pour afficher la valeur de la colonne Lien
-        def on_click(event):
-            if event.inaxes is not None:
-                for i, bar in enumerate(bars):
-                    if bar.contains(event)[0]:
-                        print("Lien:", df['Lien'][i])
-                        webbrowser.open_new(df['Lien'][i])
 
         # Connecter la fonction de clic à la figure
         plt.gcf().canvas.mpl_connect('button_press_event', on_click)
 
         # Formater l'axe des x avec des dates au format mm/jj
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%A \n %m-%d')) 
-        plt.gca().tick_params(axis='x', labelsize=8)
         # Spécifier l'intervalle d'affichage des dates (pas de 1 jour)
         plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        plt.gca().tick_params(axis='x', labelsize=8)
 
         # Personnaliser le graphique
         plt.xlabel('Temps')
         plt.ylabel('Tâche')
         plt.title('Calendrier des meilleures missions')
         plt.grid(axis='x')
+        
 
         # Afficher le graphique
         plt.tight_layout()  # Pour éviter que les étiquettes ne se chevauchent
 
         # Sauvegarder le graphique au format PNG
-        plt.savefig('graphique_gantt.png')
+        plt.savefig('Calendrier des missions.png')
         plt.show()
-        time.sleep(300)
+        time.sleep(30)
         plt.close()
+        time.sleep(30)
     except Exception as e :
         print("une erreur s'est produite", e)
         raise
