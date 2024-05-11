@@ -78,9 +78,7 @@ while(True):
         # Sauvegarder le graphique au format PNG
         plt.savefig('Calendrier des missions.png')
         plt.show()
-        time.sleep(30)
-        plt.close()
-        time.sleep(30)
+        time.sleep(10)
     except Exception as e :
         print("une erreur s'est produite", e)
         raise

@@ -185,7 +185,6 @@ def Scrapper(target):
     print("Nouveaux trajets: ", len(df2))
     print(df2)
     
-
     # Construction de la liste de tuple pour les calculs de temps de trajet
     domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
     arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df2.iterrows()]
@@ -208,23 +207,22 @@ def Scrapper(target):
     # Sommer les trajet aller - retour vers le domicile (en minute seulement)
     df['Somme'] = df.apply(lambda row: convert_to_minutes(row['Somme']), axis=1)    
 
-        
-    # Continuer au cas ou la table de données n'est pas présente
-
-
     # Calculer le trajet avec le plus de rémunération par temps de trajet
     df['Rendement'] = (df['Prix'] / df['Somme']).round(1)
 
+    # Supprimer les colonnes inutiles et doublons 
     df = df.filter(regex='^(?!Unnamed)')
     df = df.drop_duplicates()
-    df.to_excel('Driiveme.xlsx')
+
+    # Eliminer les données avec erreur (Somme > 6000)
+    df = df.loc[df["Somme"]<6000]
+
     # Sauvegarder la base 
-
-
+    df.to_excel('Driiveme.xlsx')
 
     # Sélection des meilleurs missions
     try:
-        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<1200)].drop_duplicates()
+        best = df.loc[(df['Rendement']>0.1) & (df['Somme']<1000)].drop_duplicates()
         best.to_excel('best.xlsx')
     except Exception as e :
         print('requete invalide', e)
