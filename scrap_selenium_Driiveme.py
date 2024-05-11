@@ -214,6 +214,10 @@ def Scrapper(target):
     df = df.filter(regex='^(?!Unnamed)')
     df = df.drop_duplicates()
 
+    # Afficher les trajet avec erreur d'estimation
+    print("Erreur dans l'estimation du temps de trajet")
+    print(df.loc[df["Somme"]>6000])
+    
     # Eliminer les données avec erreur (Somme > 6000)
     df = df.loc[df["Somme"]<6000]
 
