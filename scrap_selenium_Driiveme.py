@@ -8,9 +8,8 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import urls
 import re
-import concurrent.futures
-import time
 import googlemap
+import time
 
 def Scrapper(target):
     # Fonction pour convertir une durée en minutes
@@ -217,7 +216,7 @@ def Scrapper(target):
     # Afficher les trajet avec erreur d'estimation
     print("Erreur dans l'estimation du temps de trajet")
     print(df.loc[df["Somme"]>6000])
-    
+
     # Eliminer les données avec erreur (Somme > 6000)
     df = df.loc[df["Somme"]<6000]
 
