@@ -181,12 +181,15 @@ def Scrapper(target):
     df2 = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
     
     df2 = df2[['Départ', 'Arrivée', 'Début', 'Fin','Distance','Durée',"Lien",'Prix']]
+    # Réduction des nouveau trajet pour ne pas attendre trop longtemps
+    df2 = df2.head(40)
+
     print("Nouveaux trajets: ", len(df2))
     print(df2)
     
     # Construction de la liste de tuple pour les calculs de temps de trajet
-    domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
-    arrivée_domicile = [["Bourgoin-Jallieu", row['Arrivée']] for index, row in df2.iterrows()]
+    domicile_départ = [["38300 Domarin", row['Départ']] for index, row in df2.iterrows()]
+    arrivée_domicile = [["38300  Domarin", row['Arrivée']] for index, row in df2.iterrows()]
 
     # Calcul du temps de trajet vers le point de récupération du véhicule
     durée_domicile1 = googlemap.googlemap(domicile_départ)
@@ -250,8 +253,8 @@ if __name__ == "__main__":
             
             # Afficher le temps d'exécution
             print("Temps d'exécution:", temps_execution, "secondes")
-            time.sleep(300)
+            time.sleep(1)
         except Exception as e :
             print("Une erreur s'est produite")
             print(e)
-            sleep(300)
+            sleep(60)

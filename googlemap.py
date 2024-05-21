@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import time
 
 def googlemap(trajets):
+
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")  # Activer le mode headless
     options.add_argument("--disable-gpu")  # Désactiver l'accélération matérielle

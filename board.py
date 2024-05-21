@@ -19,16 +19,17 @@ while(True):
 
         # Charger les données depuis le fichier Excel best.xlsx
         df_best = pd.read_excel('best.xlsx')
-
+        df_otoqui = pd.read_excel('best2.xlsx')
         # Charger les données depuis le fichier Excel train.xlsx
         df_train = pd.read_excel('train.xlsx')
 
         # Ajouter une colonne 'Source' pour indiquer l'origine des données
+        df_otoqui['Source'] = 'otoqui'
         df_best['Source'] = 'best'
         df_train['Source'] = 'train' 
 
         # Fusionner les données des deux jeux de données
-        df = pd.concat([df_best, df_train], ignore_index=True)
+        df = pd.concat([df_best, df_train,df_otoqui], ignore_index=True)
 
         # Convertir les colonnes "Début" et "Fin" en types datetime
         df['Début'] = pd.to_datetime(df['Début'])
@@ -46,8 +47,13 @@ while(True):
         plt.figure(figsize=(15, len(df)*0.5))  # Ajuster la taille de la figure en fonction du nombre de tâches
         bars = []
         y_labels = []  # Stocker les valeurs des colonnes "Départ -> Arrivée"
+        color_mapping = {
+            'train': 'blue',
+            'otoqui': 'orange',
+            'best': 'green'
+        }
         for i, row in df.iterrows():
-            color = 'blue' if row['Source'] == 'train' else 'green'
+            color = color_mapping.get(row['Source'], 'orange')
             alpha = 1 if row['Source'] == 'train' else row['Alpha']
             bar = plt.barh(y=i, width=row['Temps'], height=1, left=row['Début'], color=color, alpha=alpha)
             bars.append(bar[0])
@@ -73,6 +79,9 @@ while(True):
         #TODO: Changer l'affichage
         # Limiter l'affichage aux 15 premiers points sur l'axe x
         plt.xlim(df['Début'].min(), df['Début'].min() + pd.Timedelta(days=15))
+        
+        # Tracer une ligne verticale rouge à la date du jour
+        plt.axvline(pd.Timestamp.now(), color='red', linestyle='--')
         
         # Personnaliser le graphique
         plt.xlabel('Temps')

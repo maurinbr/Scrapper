@@ -145,10 +145,11 @@ def Scrapper():
                     arrivee_list.append(arrivee_value)
                     reference_list.append(reference_value)
                     
+            Scroll = False
             # Faire défiler la page
             try:
                 driver.execute_script("arguments[0].scrollIntoView();", driver.find_elements(By.CLASS_NAME,"mission-container")[12])
-                sleep(5)
+                sleep(2)
             except:
                 print("fin de page")
                 sleep(5)
@@ -175,39 +176,17 @@ def Scrapper():
         'Arrivée': arrivee_list,
         'Référence' : reference_list
     })
-    print(df.head(5))
-    print("base brute")  
-
+    
     # Effacer les doublons et sauvegarder la base de donnée
     df = df.drop_duplicates()
     df = df.drop_duplicates(subset='Référence', keep='first')
     df.to_excel('otoqui_brut.xlsx')
-
-    df['jour'] = pd.to_datetime(df['jour'])
-    print("Données sauvegardées")
-
-    # Formater les colonnes 'Début' et 'Fin' au format 'yyyy-mm-jj'
-    df['Début'] = df['jour'].apply(lambda x: x.strftime('%Y-%m-%d'))
-    df['Fin'] = df['jour'].apply(lambda x: x.strftime('%Y-%m-%d'))
-    # Formater la case des prix 
-    df['Prix'] = df['Prix'].str.replace('€', '').astype(int)
-    df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
-
-    print(df.head(5))
-    print("1ere correction")
-    # Charger les trajets déjà connus pour éviter les requetes inutiles
-    df = df.head(2)
-    df_old = pd.read_excel('./otoqui.xlsx').head(1)
-    df.to_excel('otoqui.xlsx')
-
-
-    # Ajout de l'année actuelle aux dates
+    
     current_year = pd.Timestamp.now().year
     df['Jour'] = df['Jour'] + " " + str(current_year)
-
     # Conversion en objets datetime
     df['Jour'] = pd.to_datetime(df['Jour'], format='%d %B %Y')
-
+    
 
     # Formater les colonnes 'Début' et 'Fin' au format 'yyyy-mm-jj'
     df['Début'] = df['Jour'].apply(lambda x: x.strftime('%Y-%m-%d'))
@@ -215,6 +194,15 @@ def Scrapper():
     # Formater la case des prix 
     df['Prix'] = df['Prix'].str.replace('€', '').astype(int)
     df['Prix'] = pd.to_numeric(df['Prix'].values, errors="coerce")
+
+    print(df.head(5))
+    print("1ere correction")
+    # Charger les trajets déjà connus pour éviter les requetes inutiles
+    df = df
+    df_old = pd.read_excel('otoqui.xlsx')
+    df.to_excel('otoqui.xlsx')
+
+    print("données sauvegardées")
 
 
     colonnes_fusion = ['Départ', 'Arrivée', 'Début', 'Fin']
@@ -238,6 +226,8 @@ def Scrapper():
     df2 = df2[['Départ', 'Arrivée', 'Début', 'Fin','Prix']]
     print("Nouveaux trajets: ", len(df2))
     print(df2)
+    print("#########################")
+    print(df_old)
 
     # Construction de la liste de tuple pour les calculs de temps de trajet
     domicile_départ = [["Bourgoin-Jallieu", row['Départ']] for index, row in df2.iterrows()]
@@ -280,13 +270,13 @@ def Scrapper():
     df = df.loc[df["Somme"]<6000]
 
     # Sauvegarder la base 
-    df.to_excel('./otoqui.xlsx')
+    df.to_excel('otoqui.xlsx')
 
 
     # Sélection des meilleurs missions
     try:
         best = df.loc[(df['Rendement']>=0) & (df['Somme']<1000)].drop_duplicates()
-        best.to_excel('./best2.xlsx')
+        best.to_excel('best2.xlsx')
     except Exception as e :
         print('requete invalide', e)
 
@@ -297,6 +287,7 @@ if __name__ == "__main__":
     while(True):
         try:
             Scrapper() 
-            sleep(300)
-        except:
-            sleep(300)
+            sleep(60)
+        except Exception as e:
+            print("Une erreur s'est produite:", e)
+            sleep(60)
