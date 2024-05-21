@@ -102,6 +102,7 @@ def Scrapper():
         depart_list = []
         arrivee_list = []
         reference_list = []
+        lien_list = []
 
         # Initialiser la variable jour pour capturer la valeur 'jour' dans les blocs date-label-container
         jour_value = None
@@ -135,6 +136,7 @@ def Scrapper():
                     depart_value = spans[4].get_text(strip=True)
                     arrivee_value = spans[5].get_text(strip=True)
                     reference_value = block.get("data-mission-reference", "")
+                    lien_value = str("https://drivers.otoqi.com/a/mission/") + str(reference_value)
                     # Ajouter les valeurs à chaque liste
                     jour_list.append(jour_value)
                     debut_list.append(debut_value)
@@ -144,6 +146,7 @@ def Scrapper():
                     depart_list.append(depart_value)
                     arrivee_list.append(arrivee_value)
                     reference_list.append(reference_value)
+                    lien_list.append(lien_value)
                     
             Scroll = False
             # Faire défiler la page
@@ -174,7 +177,8 @@ def Scrapper():
         'Prix': prix_list,
         'Départ': depart_list,
         'Arrivée': arrivee_list,
-        'Référence' : reference_list
+        'Référence' : reference_list,
+        'Lien' : lien_list
     })
     
     # Effacer les doublons et sauvegarder la base de donnée
