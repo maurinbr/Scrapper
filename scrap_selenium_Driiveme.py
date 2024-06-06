@@ -50,8 +50,8 @@ def Scrapper(target):
     url = "https://www.driiveme.com/popup/connexion.html"
 
     # Identifiants de connexion
-    username = "bruno.maurin.mtp@gmail.com"
-    password = "Oligo2$$"
+    username = pd.read_excel("C:/Users/bruno/Downloads/identifiants.xlsx")['id'][1]
+    password = pd.read_excel("C:/Users/bruno/Downloads/identifiants.xlsx")['mdp'][1]
 
     # Configuration du navigateur
     options = webdriver.ChromeOptions()
