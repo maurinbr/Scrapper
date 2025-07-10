@@ -17,7 +17,7 @@ driver_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 login_url = "https://partenaire.expedicar.com/login"
 
 # Identifiants de connexion
-username = "bruno.maurin.mtp@gmail.com"
+username = "brunomaurinmtp"
 password = "fewou396pa"
 
 # Configuration du navigateur
