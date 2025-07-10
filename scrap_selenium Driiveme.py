@@ -17,8 +17,8 @@ driver_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 url = "https://www.driiveme.com/popup/connexion.html"
 
 # Identifiants de connexion
-username = "bruno.maurin.mtp@gmail.com"
-password = "Oligo2$$"
+username = "brunomaurinmtp@gmail.com"
+password = "Oligo"
 
 # Configuration du navigateur
 options = webdriver.ChromeOptions()
