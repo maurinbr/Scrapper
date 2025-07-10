@@ -43,8 +43,8 @@ def Scrapper():
     login_url = "https://drivers.otoqi.com/login"
 
     # Identifiants de connexion
-    username = "bruno.maurin.mtp@gmail.com"
-    password = "Oligo2$$"
+    username = ""
+    password = ""
 
     # Configuration du navigateur
     options = webdriver.ChromeOptions()
