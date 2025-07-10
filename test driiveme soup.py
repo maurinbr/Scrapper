@@ -6,8 +6,8 @@ login_data = {
     "actionForm": "login",
     "actionAjax": "/action/connexion.html",
     "returnUrl": "",
-    "email": "bruno.maurin.mtp@gmail.com",
-    "password": "Oligo2$$"
+    "email": "",
+    "password": "$$"
 }
 # Ajouter l'en-tête X-Requested-With: XMLHttpRequest
 headers = {
